@@ -12,10 +12,10 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx watch --env-file=.env src/index.ts",
     "start": "tsx --env-file=.env src/index.ts",
-    "eval": "npx lmnr eval",
-    "eval:file-tools": "npx lmnr eval evals/file-tools.eval.ts",
-    "eval:shell-tools": "npx lmnr eval evals/shell-tools.eval.ts",
-    "eval:agent": "npx lmnr eval evals/agent-multiturn.eval.ts"
+    "eval": "node scripts/lmnr-eval.mjs eval",
+    "eval:file-tools": "node scripts/lmnr-eval.mjs eval evals/file-tools.eval.ts",
+    "eval:shell-tools": "node scripts/lmnr-eval.mjs eval evals/shell-tools.eval.ts",
+    "eval:agent": "node scripts/lmnr-eval.mjs eval evals/agent-multiturn.eval.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.7",

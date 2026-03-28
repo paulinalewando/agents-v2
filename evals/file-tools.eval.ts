@@ -21,4 +21,5 @@ evaluate({
             return toolSelectionScore(output, target as EvalTarget);
         }
     },
+    groupName: "file-tools-selection",
 })

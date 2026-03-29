@@ -9,21 +9,76 @@ import type {
   MultiTurnResult,
 } from "./types.ts";
 
+const judgeSchema = z.object({
+  score: z
+    .number()
+    .min(1)
+    .max(10)
+    .describe(
+      "The score for the evaluation from 1 to 10, where 10 is the best score."
+    ),
+  reason: z.string().describe("Brief explanation of the score."),
+});
+
+export const llmJudge = async (
+  output: MultiTurnResult,
+  target: MultiTurnTarget
+) => {
+  const result = await generateObject({
+    model: openai("gpt-5.1"),
+    schema: judgeSchema,
+    schemaName: "evaluation",
+    providerOptions: {
+      openai: { reasoningEffort: "high" },
+    },
+    schemaDescription:
+      "Evaluate the output of the agent and provide a score and reason for the score.",
+    messages: [
+      {
+        role: "system",
+        content: `You are an evaluation judge. Score the agent's response on a scale of 1-10.
+
+                  Scoring criteria:
+                  - 10: Response fully addresses the task using tool results correctly
+                  - 7-9: Response is mostly correct with minor issues
+                  - 4-6: Response partially addresses the task
+                  - 1-3: Response is mostly incorrect or irrelevant`,
+      },
+      {
+        role: "user",
+        content: `Task: ${target.originalTask}
+
+                  Tools called: ${JSON.stringify(output.toolCallOrder)}
+                  Tool results provided: ${JSON.stringify(
+                    target.mockToolResults
+                  )}
+
+                  Agent's final response:
+                  ${output.text}
+
+                  Evaluate if this response correctly uses the tool results to answer the task.`,
+      },
+    ],
+  });
+
+  return result.object.score / 10;
+};
+
 export function toolsSelected(
   output: SingleTurnResult | MultiTurnResult,
-  target: EvalTarget | MultiTurnTarget,
+  target: EvalTarget | MultiTurnTarget
 ): number {
   const expectedTools =
     "expectedTools" in target
       ? target.expectedTools
       : "expectedToolOrder" in target
-        ? target.expectedToolOrder
-        : undefined;
+      ? target.expectedToolOrder
+      : undefined;
 
   if (!expectedTools?.length) return 1;
 
   const selected = new Set(
-    "toolNames" in output ? output.toolNames : output.toolsUsed,
+    "toolNames" in output ? output.toolNames : output.toolsUsed
   );
 
   return expectedTools.every((t) => selected.has(t)) ? 1 : 0;
@@ -36,12 +91,12 @@ export function toolsSelected(
  */
 export function toolsAvoided(
   output: SingleTurnResult | MultiTurnResult,
-  target: EvalTarget | MultiTurnTarget,
+  target: EvalTarget | MultiTurnTarget
 ): number {
   if (!target.forbiddenTools?.length) return 1;
 
   const selected = new Set(
-    "toolNames" in output ? output.toolNames : output.toolsUsed,
+    "toolNames" in output ? output.toolNames : output.toolsUsed
   );
 
   return target.forbiddenTools.some((t) => selected.has(t)) ? 0 : 1;
@@ -54,7 +109,7 @@ export function toolsAvoided(
  */
 export function toolSelectionScore(
   output: SingleTurnResult,
-  target: EvalTarget,
+  target: EvalTarget
 ): number {
   if (!target.expectedTools?.length) {
     return output.selectedAny ? 0.5 : 1;
@@ -79,7 +134,7 @@ export function toolSelectionScore(
  */
 export function toolOrderCorrect(
   output: MultiTurnResult,
-  target: MultiTurnTarget,
+  target: MultiTurnTarget
 ): number {
   if (!target.expectedToolOrder?.length) return 1;
 
